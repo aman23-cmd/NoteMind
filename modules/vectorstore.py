@@ -68,6 +68,11 @@ def get_collection(client=None):
     """
     Get or create the video_transcripts collection.
 
+    We explicitly pass embedding_function=None because we always supply our
+    own embeddings (from Gemini API) when adding/querying. Without this,
+    ChromaDB defaults to downloading its own onnx-based embedding model from
+    HuggingFace Hub, which wastes memory and isn't needed here.
+
     Args:
         client: A ChromaDB client. If None, uses the default persistent client.
 
@@ -85,6 +90,7 @@ def get_collection(client=None):
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,
         metadata={"hnsw:space": "cosine"},  # use cosine similarity
+        embedding_function=None,
     )
 
     if client == _client:
