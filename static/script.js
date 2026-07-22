@@ -1,6 +1,8 @@
 // NoteMind Frontend Logic
+const API_BASE_URL = "http://127.0.0.1:5000";
 
 document.addEventListener('DOMContentLoaded', () => {
+
     // Current Active State
     let currentVideoId = null;
     let currentVideoTitle = '';
@@ -84,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hideDashboard();
 
         try {
-            const response = await fetch('/process-video', {
+            const response = await fetch(`${API_BASE_URL}/process-video`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: url })
@@ -123,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function loadHistory() {
         try {
-            const response = await fetch('/history');
+            const response = await fetch(`${API_BASE_URL}/history`);
             const result = await response.json();
 
             if (result.success && result.videos) {
@@ -206,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
         notesMethod.textContent = 'Method: Loading...';
         
         try {
-            const response = await fetch('/generate-notes', {
+            const response = await fetch(`${API_BASE_URL}/generate-notes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ video_id: videoId, force: forceRegenerate })
@@ -282,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSearch.disabled = true;
 
         try {
-            const response = await fetch('/search', {
+            const response = await fetch(`${API_BASE_URL}/search`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ video_id: currentVideoId, query: query })

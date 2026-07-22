@@ -5,13 +5,13 @@ This is the main file that starts the web server.
 Run it with:  python app.py
 Then open:    http://127.0.0.1:5000
 """
-
+from flask_cors import CORS
 import os
 from flask import Flask, render_template, request, jsonify
 from config import Config
 
 app = Flask(__name__)
-
+CORS(app)
 # ── Initialize the database on startup ──
 from database.db import init_db
 init_db()
@@ -28,8 +28,8 @@ print(f"[BOOT] Embedding model ready in {_startup_time.perf_counter() - _t0:.1f}
 
 @app.route('/')
 def index():
-    """Render the home page."""
-    return render_template('index.html')
+    """Simple status endpoint (frontend is hosted separately)."""
+    return {'status': 'NoteMind API running'}, 200
 
 
 @app.route('/health')
@@ -400,4 +400,4 @@ def history():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+    app.run(debug=False, host='0.0.0.0', port=port, use_reloader=False)
