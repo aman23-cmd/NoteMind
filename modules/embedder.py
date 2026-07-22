@@ -1,40 +1,68 @@
 """
-embedder.py — Generates vector embeddings from text using sentence-transformers.
+embedder.py — Generates vector embeddings from text using Google's Gemini
+embedding API (models/text-embedding-004).
 
-Uses the all-MiniLM-L6-v2 model which:
-  - Runs fully locally (no API key needed)
-  - Produces 384-dimensional embeddings
-  - Is fast and lightweight (~80MB model)
+Why an API-based model instead of a local one:
+  - Loading sentence-transformers + torch locally requires 400MB+ of RAM,
+    which exceeds free-tier hosting limits (e.g. Render's 512MB cap).
+  - Using Gemini's free embedding API removes that memory burden entirely —
+    no large ML library needs to be loaded into the process.
 
-The model is loaded lazily (on first use) and cached for the lifetime of the
-process, so it is NOT reloaded on every call.
+Model used: "models/text-embedding-004"
+Embedding dimension: 768
+
+The Gemini client is created lazily (on first use) and cached for the
+lifetime of the process, matching the previous lazy-singleton pattern.
 """
 
-import sys
 import os
+import sys
+import time
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config import Config
 
-# ── Module-level cache for the model ──
-_model = None
+# ── Module-level cache for the client and dimension ──
+_client = None
+_EMBEDDING_DIMENSION = 768  # text-embedding-004 output size
 
 
-def _get_model():
+def _get_client():
     """
-    Load the sentence-transformers model (lazy singleton).
-
-    The model is loaded on first call and cached in a module-level variable.
-    Subsequent calls return the cached model instantly.
+    Create (or return cached) Gemini API client (lazy singleton).
 
     Returns:
-        SentenceTransformer: The loaded embedding model.
+        genai.Client: The Gemini API client.
     """
-    global _model
-    if _model is None:
-        from sentence_transformers import SentenceTransformer
-        _model = SentenceTransformer(Config.EMBEDDING_MODEL)
-    return _model
+    global _client
+    if _client is None:
+        from google import genai
+        api_key = getattr(Config, "GEMINI_API_KEY", None) or os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY is not set. Embeddings require a valid Gemini API key."
+            )
+        _client = genai.Client(api_key=api_key)
+    return _client
+
+
+def _embed_single(text, max_retries=3):
+    """Call the Gemini embedding API for one piece of text, with retries."""
+    client = _get_client()
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            result = client.models.embed_content(
+                model="models/text-embedding-004",
+                contents=text,
+            )
+            return list(result.embeddings[0].values)
+        except Exception as e:
+            last_error = e
+            time.sleep(1.5 * (attempt + 1))  # simple backoff
+    raise RuntimeError(
+        f"Failed to generate embedding after {max_retries} attempts: {last_error}"
+    )
 
 
 def generate_embeddings(texts):
@@ -46,7 +74,7 @@ def generate_embeddings(texts):
 
     Returns:
         list: A list of embedding vectors (each is a list of floats).
-              For all-MiniLM-L6-v2, each vector has 384 dimensions.
+              For text-embedding-004, each vector has 768 dimensions.
 
               If a single string is passed, still returns a list with one embedding.
               Empty or whitespace-only strings get a zero vector.
@@ -60,7 +88,7 @@ def generate_embeddings(texts):
         return []
 
     # Handle empty/whitespace strings: replace with a placeholder so the
-    # model doesn't choke, then we'll zero out the result.
+    # API doesn't choke, then we'll zero out the result.
     empty_mask = []
     cleaned_texts = []
     for t in texts:
@@ -71,18 +99,13 @@ def generate_embeddings(texts):
             empty_mask.append(False)
             cleaned_texts.append(t)
 
-    # Generate embeddings
-    model = _get_model()
-    embeddings = model.encode(cleaned_texts, show_progress_bar=False)
-
-    # Convert numpy arrays to plain Python lists
+    # Generate embeddings one at a time (API call per text)
     result = []
-    for i, emb in enumerate(embeddings):
+    for i, text in enumerate(cleaned_texts):
         if empty_mask[i]:
-            # Zero vector for empty inputs
-            result.append([0.0] * len(emb))
+            result.append([0.0] * _EMBEDDING_DIMENSION)
         else:
-            result.append(emb.tolist())
+            result.append(_embed_single(text))
 
     return result
 
@@ -91,10 +114,9 @@ def get_embedding_dimension():
     """
     Return the dimension of the embedding vectors produced by the current model.
 
-    For all-MiniLM-L6-v2 this is 384.
+    For text-embedding-004 this is 768.
 
     Returns:
         int: The embedding dimension.
     """
-    model = _get_model()
-    return model.get_embedding_dimension()
+    return _EMBEDDING_DIMENSION

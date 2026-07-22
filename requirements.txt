@@ -5,8 +5,6 @@ python-dotenv>=1.0.0
 # ── Transcript Extraction ──
 youtube-transcript-api>=0.6.1
 
-# ── Embeddings (local, no API key needed) ──
-sentence-transformers>=2.2.2
 
 # ── Vector Database ──
 chromadb>=0.4.15
@@ -15,8 +13,8 @@ chromadb>=0.4.15
 groq>=0.4.2
 google-genai>=1.0.0
 
-# ── Whisper (optional local fallback — heavy, not used in deployment) ──
-openai-whisper>=20231117
+
+
 
 # ── Testing ──
 pytest>=7.4.0
