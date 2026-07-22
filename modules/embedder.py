@@ -24,7 +24,7 @@ from config import Config
 
 # ── Module-level cache for the client and dimension ──
 _client = None
-_EMBEDDING_DIMENSION = 768  # text-embedding-004 output size
+_EMBEDDING_DIMENSION = 768  # gemini-embedding-001, requested at 768 dims
 
 
 def _get_client():
@@ -48,13 +48,16 @@ def _get_client():
 
 def _embed_single(text, max_retries=3):
     """Call the Gemini embedding API for one piece of text, with retries."""
+    from google.genai import types
+
     client = _get_client()
     last_error = None
     for attempt in range(max_retries):
         try:
             result = client.models.embed_content(
-                model="models/text-embedding-004",
+                model="gemini-embedding-001",
                 contents=text,
+                config=types.EmbedContentConfig(output_dimensionality=768),
             )
             return list(result.embeddings[0].values)
         except Exception as e:
