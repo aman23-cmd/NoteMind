@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoteMind — AI-Powered Video Search & Smart Notes</title>
+    <meta name="description" content="Extract transcripts, generate structured study notes, and search video content semantically using AI.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="logo-icon">🧠</span>
+                <div class="logo-text">
+                    <h1>NoteMind</h1>
+                    <span class="tagline">AI-Powered Video Search & Smart Notes</span>
+                </div>
+            </div>
+            <div id="api-status-badge" class="badge badge-success">API Status: Ready</div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-main">
+            <!-- Left Panel: Input & Processing -->
+            <section class="panel panel-input" aria-label="Video Input and History">
+                <div class="card glass">
+                    <h2>Process New Video</h2>
+                    <p class="card-desc">Enter any YouTube URL to extract transcripts, build semantic index, and generate notes.</p>
+                    
+                    <form id="process-form" class="form-group">
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔗</span>
+                            <input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=..." required>
+                        </div>
+                        <button type="submit" id="btn-process" class="btn btn-primary">
+                            <span>Process Video</span>
+                            <span class="btn-loader hidden"></span>
+                        </button>
+                    </form>
+
+                    <!-- Loading State -->
+                    <div id="loading-container" class="loading-container hidden">
+                        <div class="spinner"></div>
+                        <div class="loading-status">
+                            <p id="loading-text">Extracting transcript...</p>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error State -->
+                    <div id="error-container" class="error-container hidden">
+                        <span class="error-icon">⚠️</span>
+                        <p id="error-message">Something went wrong.</p>
+                    </div>
+                </div>
+
+                <!-- History / Library Card -->
+                <div class="card glass history-card">
+                    <div class="card-header">
+                        <h2>Library & History</h2>
+                        <button id="btn-refresh-history" class="btn-icon" title="Refresh History">🔄</button>
+                    </div>
+                    <p class="card-desc">Quick access to previously processed videos.</p>
+                    <div id="history-list" class="history-list">
+                        <!-- History Items go here -->
+                        <div class="empty-state">No videos processed yet.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Panel: Output Dashboard -->
+            <section id="dashboard" class="panel panel-dashboard glass hidden" aria-label="Video Dashboard">
+                <!-- Video Metadata -->
+                <div class="video-meta-section">
+                    <div class="video-info">
+                        <h2 id="meta-title" class="video-title">Video Title</h2>
+                        <p class="video-link-wrapper">
+                            <a id="meta-url" href="#" target="_blank" rel="noopener">Open on YouTube ↗</a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Tabs Navigation -->
+                <div class="tabs-nav" role="tablist">
+                    <button id="tab-notes" class="tab-btn active" role="tab" aria-selected="true" aria-controls="panel-notes">
+                        📝 Smart Notes
+                    </button>
+                    <button id="tab-search" class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-search">
+                        🔍 Search Topic
+                    </button>
+                </div>
+
+                <!-- Tabs Content Panels -->
+                <div class="tabs-content">
+                    <!-- Tab Panel 1: Smart Notes -->
+                    <div id="panel-notes" class="tab-panel active" role="tabpanel" aria-labelledby="tab-notes">
+                        <div class="panel-header-actions">
+                            <div class="notes-metadata">
+                                <span id="notes-provider" class="pill">Provider: --</span>
+                                <span id="notes-method" class="pill">Method: --</span>
+                            </div>
+                            <div class="action-buttons">
+                                <button id="btn-regenerate-notes" class="btn btn-secondary btn-small">
+                                    🔄 Regenerate Notes
+                                </button>
+                                <button id="btn-download-notes" class="btn btn-secondary btn-small">
+                                    💾 Download Markdown
+                                </button>
+                            </div>
+                        </div>
+                        <div id="notes-content" class="notes-markdown-body">
+                            <!-- Notes text goes here -->
+                        </div>
+                    </div>
+
+                    <!-- Tab Panel 2: Search Topic -->
+                    <div id="panel-search" class="tab-panel" role="tabpanel" aria-labelledby="tab-search">
+                        <p class="tab-desc">Ask specific questions about the video. NoteMind will find the answer using relevant segments.</p>
+                        
+                        <form id="search-form" class="form-group row">
+                            <div class="input-wrapper">
+                                <span class="input-icon">❓</span>
+                                <input type="text" id="search-query" placeholder="What is the main argument?" required>
+                            </div>
+                            <button type="submit" id="btn-search" class="btn btn-primary">Search</button>
+                        </form>
+
+                        <div id="search-loading" class="search-loading hidden">
+                            <div class="spinner spinner-small"></div>
+                            <span>Searching transcript segments...</span>
+                        </div>
+
+                        <!-- Search Result Display -->
+                        <div id="search-result-container" class="search-result-container hidden">
+                            <div class="answer-card">
+                                <h3>Answer</h3>
+                                <p id="search-answer">Answer text goes here...</p>
+                                <div class="answer-meta">
+                                    <span id="search-provider" class="pill">Provider: --</span>
+                                    <span id="search-timestamp-pill" class="pill pill-interactive">
+                                        ⏱️ Best Match: <a id="search-timestamp-link" href="#" target="_blank">00:00:00</a>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="source-chunks-section">
+                                <h3>Source Transcript Segments</h3>
+                                <div id="source-chunks-list" class="source-chunks-list">
+                                    <!-- Source chunks go here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- JavaScript Bundle -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

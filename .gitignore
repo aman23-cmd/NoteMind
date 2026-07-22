@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+venv/
+env/
+.env
+
+# Database and Storage
+notemind.db
+chroma_db/
+*.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+.coverage 
