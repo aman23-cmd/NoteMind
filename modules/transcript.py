@@ -139,7 +139,17 @@ def fetch_transcript(video_id, languages=None):
         languages = ['en']
 
     try:
-        ytt_api = YouTubeTranscriptApi()
+        from youtube_transcript_api.proxies import WebshareProxyConfig
+        from config import Config
+
+        proxy_config = None
+        if Config.WEBSHARE_PROXY_USERNAME and Config.WEBSHARE_PROXY_PASSWORD:
+            proxy_config = WebshareProxyConfig(
+                proxy_username=Config.WEBSHARE_PROXY_USERNAME,
+                proxy_password=Config.WEBSHARE_PROXY_PASSWORD,
+            )
+
+        ytt_api = YouTubeTranscriptApi(proxy_config=proxy_config)
         fetched = ytt_api.fetch(video_id, languages=languages)
 
         # Convert FetchedTranscriptSnippet objects into plain dicts

@@ -23,6 +23,8 @@ class Config:
     # ── API Keys (read from environment, never hardcode) ──
     GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+    WEBSHARE_PROXY_USERNAME = os.environ.get('WEBSHARE_PROXY_USERNAME', '')
+    WEBSHARE_PROXY_PASSWORD = os.environ.get('WEBSHARE_PROXY_PASSWORD', '')
 
     # ── Database Paths ──
     SQLITE_DB_PATH = os.path.join(BASE_DIR, 'database', 'notemind.db')
@@ -79,3 +81,4 @@ class Config:
 
 # Run validation as soon as this module is imported
 Config.validate_keys()
+
